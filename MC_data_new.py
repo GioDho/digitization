@@ -11,7 +11,7 @@ from scipy.stats import expon
 from scipy.stats import poisson
 
 #sys.path.append("../reconstruction")
-import swiftlib as sw
+import onlines3lib as s3on
 
 
 ## FUNCTIONS DEFINITION
@@ -86,15 +86,19 @@ def Nph_saturation(histo_cloud,options):
 def AddBckg(options, i):
     bckg_array=np.zeros((options.x_pix,options.y_pix))
     if options.bckg:
-        if sw.checkfiletmp(int(options.noiserun)):
-            #options.tmpname = "/tmp/histograms_Run%05d.root" % int(options.noiserun)
-            #options.tmpname = "/mnt/ssdcache/histograms_Run%05d.root" % int(options.noiserun)
-            options.tmpname = "/nfs/cygno/users/dimperig/CYGNO/CYGNO-tmp/histograms_Run%05d.root" % int(options.noiserun)
-            #FIXME
-            #options.tmpname = "/nfs/cygno/users/dimperig/CYGNO/CYGNO-tmp/histograms_Run%05d_cropped.root" % int(options.noiserun)
+        if os.path.isfile('../pedestals/histograms_Run%05d.root' % (int(options.noiserun))) :
+            options.tmpname='../pedestals/histograms_Run%05d.root' % (int(options.noiserun))
+
         else:
-            print ('Downloading file: ' + sw.swift_root_file(options.tag, int(options.noiserun)))
-            options.tmpname = sw.swift_download_root_file(sw.swift_root_file(options.tag, int(options.noiserun)),int(options.noiserun))
+            USER = os.environ['USER']
+            tmpdir = '/mnt/ssdcache/' if os.path.exists('/mnt/ssdcache/') else '/tmp/'
+            os.system('mkdir -p {tmpdir}/{user}'.format(tmpdir=tmpdir,user=USER))
+            if os.path.isfile("%s/%s/histograms_Run%05d.root" % (tmpdir,USER,int(options.noiserun))):
+                options.tmpname = "%s/%s/histograms_Run%05d.root" % (tmpdir,USER,int(options.noiserun))
+            else:
+                print ('Downloading file: ' + s3on.s3_root_file(options.tag, int(options.noiserun)))
+                options.tmpname = s3on.s3_download_root_file(s3on.s3_root_file(options.tag, int(options.noiserun)),int(options.noiserun))
+
         tmpfile =rt.TFile.Open(options.tmpname)
         tmphist = tmpfile.Get("pic_run%05d_ev%d"% (int(options.noiserun),i))
         bckg_array = rn.hist2array(tmphist) 
